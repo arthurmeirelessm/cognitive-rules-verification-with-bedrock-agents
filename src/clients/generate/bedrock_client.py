@@ -1,17 +1,18 @@
+from beartype import beartype
 from langchain_aws import ChatBedrock
 from langchain_core.messages import HumanMessage
-from langchain_core.messages import AIMessage
-from beartype import beartype
+
 from src.logger import log_execution
 
-class BedrockLangchainClient: 
+
+class BedrockLangchainClient:
     def __init__(self):
-        self.llm =ChatBedrock(
-        model="anthropic.claude-3-5-haiku-20241022-v1:0",
-        region="us-east-1",
-        max_tokens=1500,
-        model_kwargs={"thinking": {"type": "enabled", "budget_tokens": 1024}},
-    )
+        self.llm = ChatBedrock(
+            model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+            region="us-east-1",
+            max_tokens=1500,
+            model_kwargs={"thinking": {"type": "enabled", "budget_tokens": 1024}},
+        )
 
     @log_execution
     @beartype

@@ -2,7 +2,9 @@ from beartype import beartype
 from quart import Response, jsonify, request
 
 from src.logger import log_execution
-from src.services.cognitive_rulesVerification_app_service import CognitiveRulesVerificationAppServices
+from src.services.cognitive_rulesVerification_app_service import (
+    CognitiveRulesVerificationAppServices,
+)
 
 
 class CognitiveRulesVerificationAppController:
@@ -29,8 +31,7 @@ class CognitiveRulesVerificationAppController:
         response.status_code = status_code
 
         return response
-    
-    
+
     @log_execution
     @beartype
     async def agent_orchestrator_controller(self) -> Response:
@@ -38,13 +39,15 @@ class CognitiveRulesVerificationAppController:
         print(f"auth no controller: {auth_header}")
         data = await request.get_json()
         input = data.get("input")
-        message, status_code = await self.run_test_service.agent_orchestrator_service(auth_header, input)
+        message, status_code = await self.run_test_service.agent_orchestrator_service(
+            auth_header, input
+        )
         print(status_code)
         response = jsonify(
             {"message": message, "status": "success" if status_code == 200 else "error"}
         )
         response.status_code = status_code
-        
+
         return response
 
     @log_execution

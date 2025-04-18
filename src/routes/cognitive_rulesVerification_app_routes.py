@@ -1,11 +1,15 @@
 from quart import Blueprint
 
-from src.controllers.cognitive_rulesVerification_app_controller import CognitiveRulesVerificationAppController
+from src.controllers.cognitive_rulesVerification_app_controller import (
+    CognitiveRulesVerificationAppController,
+)
 
 
 class CognitiveRulesVerificationAppRoutes:
     def __init__(self):
-        self.cognitive_rules_verification_app_blueprint = Blueprint("cognitive_rules_verification_app_blueprint", __name__)
+        self.cognitive_rules_verification_app_blueprint = Blueprint(
+            "cognitive_rules_verification_app_blueprint", __name__
+        )
         self.cognitive_rules_verification_app_controller = CognitiveRulesVerificationAppController()
         self._register_routes()
 
