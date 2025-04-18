@@ -2,3 +2,5 @@ venv
 .env
 .terraform/
 .terraform.lock.hcl
+function.zip
+execution.log
