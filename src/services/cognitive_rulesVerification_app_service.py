@@ -1,87 +1,47 @@
 import asyncio
 import random
 from typing import Union
-
+from langchain_aws.llms.bedrock import BedrockLLM
+from langchain_aws import ChatBedrock
+from langchain.agents import initialize_agent, AgentType
 from beartype import beartype
-from langchain_aws import BedrockEmbeddings
-from langchain_core.messages import AIMessage
-
-from src.auth import JWTAuth
-from src.clients.generate.bedrock_client import BedrockLangchainClient
+from src.auth import JWTAuth, require_jwt
+from src.tools import get_all_tools
 from src.logger import log_execution
-from src.repositories.dynamodb_cliente_repository import DynamoDbClientRepository
-from src.repositories.redis_repository import RedisRepository
 
 
 class CognitiveRulesVerificationAppServices:
     def __init__(self):
         self.jwt_auth = JWTAuth()
-        self.dynamo_client = DynamoDbClientRepository()
-        self.bedrock_with_langchain_client = BedrockLangchainClient()
-        self.llm_embeddings = BedrockEmbeddings(
-            model_id="amazon.titan-text-express-v1", region_name="us-east-1"
-        )
-        self.redis_sematic_cache = RedisRepository()
-
+        
     @log_execution
     @beartype
-    async def get_all_items_service(self, auth_header: str) -> list[str] | tuple[str, int]:
+    @require_jwt(jwt_auth=JWTAuth())
+    async def agent_orchestrator_service(self, auth_header: str, user_input: str) -> tuple[str, int]:
         try:
-            auth_validation = await self.jwt_auth.verify_jwt(auth_header)
-            if auth_validation is True:
-                get_all_items_response = await self.dynamo_client.get_all()
-                print(get_all_items_response)
-                return get_all_items_response, 200
-            else:
-                return auth_validation, 403
-        except Exception as e:
-            print(f"Erro ao obter itens: {e}")
-            return "Erro interno no servidor", 500
+            tools = get_all_tools()
 
-    @log_execution
-    @beartype
-    async def create_item_service(
-        self, auth_header: str, cpf: str, email: str, nome: str, celular: str
-    ) -> tuple[str, int]:
-        try:
-            auth_validation = await self.jwt_auth.verify_jwt(auth_header)
-            if auth_validation is True:
-                create_user_response = await self.dynamo_client.create_item(
-                    cpf, email, nome, celular
-                )
-                print(f"create_User_r: {create_user_response}")
-                if create_user_response is True:
-                    return "Usuario criado com sucesso!", 200
-                else:
-                    return "Erro ao criar usuario", 500
-            else:
-                return auth_validation, 403
+            llm = ChatBedrock(
+                model_id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",  
+                region_name="us-east-1",
+                model_kwargs={"temperature": 0.3}
+            )
+
+            agent = initialize_agent(
+                tools=tools,
+                llm=llm,
+                agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+                verbose=True
+            )
+
+            result = await asyncio.to_thread(agent.run, user_input)
+            print(f"RESULT: {result}")
+            return result, 200
+
         except Exception as e:
             print(f"Erro ao criar item: {e}")
             return "Erro interno no servidor", 500
-
-    @log_execution
-    @beartype
-    async def agent_orchestrator_service(self, auth_header: str, input: str) -> tuple[str, int]:
-        try:
-            auth_validation = await self.jwt_auth.verify_jwt(auth_header)
-            if auth_validation is True:
-                cached_response = await self.redis_sematic_cache.get_cache(
-                    input, self.llm_embeddings
-                )
-                if cached_response:
-                    print(f"Resposta do cache: {cached_response}")
-                    return cached_response, 200
-                bedrockClient = (
-                    await self.bedrock_with_langchain_client.bedrock_with_langchain_client(input)
-                )
-                print(f"Bedrock CLIENT: {bedrockClient}")
-                return bedrockClient, 200
-            else:
-                return auth_validation, 403
-        except Exception as e:
-            print(f"Erro ao criar item: {e}")
-            return "Erro interno no servidor", 500
+        
 
     @log_execution
     @beartype

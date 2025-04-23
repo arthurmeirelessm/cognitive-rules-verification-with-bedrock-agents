@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Union
-
+from functools import wraps
 import jwt
 from beartype import beartype
 from dotenv import load_dotenv
@@ -26,15 +26,18 @@ class JWTAuth:
         }
         token = jwt.encode(payload, self.SECRET_KEY, algorithm="HS256")
         return token
+    
+    
 
-    @log_execution
-    @beartype
-    async def verify_jwt(self, auth_header: str) -> Union[str, bool]:
-        try:
+def require_jwt(jwt_auth: JWTAuth):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(self, auth_header: str, *args, **kwargs):
             token = auth_header.split(" ")[1]
-            decoded = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
-            return True
-        except ExpiredSignatureError:
-            return "Token expirado"
-        except InvalidTokenError:
-            return "Token inválido"
+            decoded = jwt.decode(token, jwt_auth.SECRET_KEY, algorithms=["HS256"])
+            return await func(self, auth_header, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+

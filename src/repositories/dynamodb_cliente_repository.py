@@ -17,25 +17,27 @@ class DynamoDbClientRepository:
     def __init__(self):
         self.dynamodb = boto3.client("dynamodb", region_name="us-east-1")
         self.table = os.getenv("DYNAMO_DB_TABLE")
+        
+        
 
     async def get_all(self):
         """
         Busca todos os itens da tabela no DynamoDB e os converte para JSON.
         """
         try:
-            # Realiza a operação de scan na tabela
             response = self.dynamodb.scan(TableName=self.table, Select="ALL_ATTRIBUTES")
             items = response.get("Items", [])
             print(items)
-            # Converte os itens para um formato JSON legível
             formatted_items = [{k: v[list(v.keys())[0]] for k, v in item.items()} for item in items]
 
             return json.dumps(
                 formatted_items, ensure_ascii=False
-            )  # Mantém caracteres acentuados legíveis
+            ) 
         except Exception as e:
             print(f"Erro ao buscar itens: {e}")
             return json.dumps([])
+        
+        
 
     @log_execution
     @beartype
