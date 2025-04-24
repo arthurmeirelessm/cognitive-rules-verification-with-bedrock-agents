@@ -20,9 +20,6 @@ class BedrockLangchainClient:
     async def bedrock_with_langchain_client(self, input: str) -> str:
         try:
             messages = [
-                SystemMessage(
-                    content="Você é um assistente especialista em tecnologia, história e curiosidades.",
-                ),
                 HumanMessage(content=input),
             ]
             response = await self.llm.ainvoke(messages)
