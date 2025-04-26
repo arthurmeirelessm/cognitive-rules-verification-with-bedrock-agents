@@ -17,12 +17,12 @@ class BedrockLangchainClient:
 
     @log_execution
     @beartype
-    async def bedrock_with_langchain_client(self, input: str) -> str:
+    def bedrock_with_langchain_client(self, input: str) -> str:
         try:
             messages = [
                 HumanMessage(content=input),
             ]
-            response = await self.llm.ainvoke(messages)
+            response = self.llm.invoke(messages)
             return response.content
         except Exception as e:
             print(f"Erro ao chamar Bedrock: {e}")

@@ -17,12 +17,27 @@ class RetrieveAndGenerateTool:
         self.redis_cache = RedisRepository()
         
 
-    async def retrieve_and_generate(self, user_input: str) -> str:
-        try:
-            response = await self.bedrock_client.bedrock_with_langchain_client(user_input)
-            print(f"RESPOSTA BEDROCK: {response}")  # <-- Linha 4: resposta da LLM Bedrock
-            return response
-        except Exception as e:
+    def retrieve_and_generate(self, user_input: str) -> str:
+         try:
+            receitas_basicas = """
+            🍳 Receita Pós-Treino: Omelete Proteico
+            - Ingredientes: 2 ovos, sal, pimenta, 1 colher de sopa de leite, azeite.
+            - Modo de preparo: Bata os ovos com sal, pimenta e leite. Aqueça o azeite em uma frigideira e despeje a mistura. Cozinhe até dourar dos dois lados. Ideal para recuperar os músculos com proteína de qualidade.
+
+            🍰 Receita Doce: Brigadeiro Clássico
+            - Ingredientes: 1 lata de leite condensado, 1 colher de sopa de manteiga, 2 colheres de sopa de chocolate em pó, chocolate granulado.
+            - Modo de preparo: Misture o leite condensado, manteiga e chocolate em pó em uma panela. Cozinhe mexendo sempre até desgrudar do fundo. Modele em bolinhas e passe no granulado.
+
+            🍝 Receita Italiana: Espaguete ao Alho e Óleo
+            - Ingredientes: 200g de espaguete, 3 dentes de alho fatiados, azeite, sal, salsinha (opcional).
+            - Modo de preparo: Cozinhe o espaguete com sal. Refogue o alho no azeite até dourar. Misture o espaguete cozido ao alho refogado e finalize com salsinha.
+            """
+            
+            final_input = "Input do usuário: " + user_input + "\nContexto de receitas aqui em baixo: " + receitas_basicas
+            
+            return final_input
+            
+         except Exception as e:
             print(f"Erro no retrieve_and_generate: {e}")  # <-- Linha 6: erro no processo
             return "Erro interno no servidor"
 

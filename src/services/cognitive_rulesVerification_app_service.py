@@ -18,6 +18,8 @@ from langchain.prompts import MessagesPlaceholder
 from langchain.schema.messages import AIMessage, HumanMessage
 from src.tools.agent_tools import RetrieveAndGenerateTool
 from src.utils.response_utils import ServiceResponse
+from langchain_aws import ChatBedrockConverse
+
 
 class CognitiveRulesVerificationAppServices:
     def __init__(self):
@@ -55,21 +57,16 @@ class CognitiveRulesVerificationAppServices:
         try:
             """Interact with the agent and store chat history. Return the response."""
             print(f"INPUT NO interact_with_agent: {user_input}")
-            result = agent_executor.invoke(
-                {
-                    "input": user_input,
-                    "chat_history": chat_history,
-                }
-            )
-            print("Action escolhida:", result)
-            print("Action escolhida:", result.get("action"))
-            print("tool_input   :", result.get("tool_input"))
-            
+            print("preview result AAA")
+            result = await agent_executor.arun(user_input)
+            print("result AAA:", result)
+ 
+        
             chat_history.append(HumanMessage(content=user_input))
-            output = result.get("output", "Resposta não gerada.")
-            chat_history.append(AIMessage(content="Assistant: " + output))
+            chat_history.append(AIMessage(content="Assistant: " + result))
             
-            return output
+            
+            return result
 
         except Exception as e:
             print(f"Erro no service: {e}")
@@ -81,44 +78,30 @@ class CognitiveRulesVerificationAppServices:
     @beartype
     async def setup_full_agent(self) -> AgentExecutor | ServiceResponse:
         try:
-            llm = ChatBedrock(
-                model_id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-                model_kwargs={"temperature": 0.3},
-            )
+            llm = ChatBedrockConverse(model="us.amazon.nova-pro-v1:0")
 
             retrieve_and_generate = StructuredTool.from_function(
                 name="retrieve_and_generate", 
                 func=self.retrieve_and_generate_tool.retrieve_and_generate,
-                description="Busca e gera resposta baseada em receitas e consultas de culinária"
+                description="Gera resposta baseada em receitas e consultas de culinária"
             )
 
-            chat_message_int = MessagesPlaceholder(variable_name="chat_history")
             memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
             agent_executor = initialize_agent(
                 [retrieve_and_generate],
                 llm,
-                agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+                agent="zero-shot-react-description",
                 agent_kwargs={
-                    "prefix": (
-                        "Você é um assistente útil e objetivo. Ao receber uma pergunta do usuário:\n"
-                        "- Perguntas gerais → responda direto (Final Answer).\n"
-                        "- Perguntas de culinária → use retrieve_and_generate.\n\n"
-                        "Sempre retorne **exatamente** um bloco JSON com action + action_input."
-                    ),
-                    "suffix": (
-                        "\nAction:\n```json\n"
-                        "{{\n"
-                        "  \"action\": \"Final Answer\",  \n"
-                        "  \"action_input\": \"<resposta aqui>\"\n"
-                        "}}\n"
-                        "```\n"
-                    ),
-                    "memory_prompts": [chat_message_int],
-                    "input_variables": ["input", "agent_scratchpad", "chat_history"],
+                    "system_message": (
+                        "Você é um assistente educado e útil. Sempre responda em português, "
+                        "use os recursos disponíveis de forma eficiente e evite repetir ações. "
+                        "Dê uma única resposta clara e objetiva para o usuário."
+                    )
                 },
                 memory=memory,
                 verbose=True,
+                handle_parsing_errors=True,
             )
 
             print(f"SETUP: {type(agent_executor)}")
