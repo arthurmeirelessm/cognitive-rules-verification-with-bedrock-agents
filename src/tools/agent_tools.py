@@ -1,4 +1,4 @@
-from typing import Annotated
+import asyncio
 from langchain.agents import Tool
 from langchain_core.tools import StructuredTool
 from langchain_aws import BedrockEmbeddings
@@ -15,36 +15,16 @@ class RetrieveAndGenerateTool:
             region_name="us-east-1"
         )
         self.redis_cache = RedisRepository()
+        
 
-    async def retrieve_and_generate(self, action_group: Annotated[str, "Texto original do usuário"]) -> str:
+    async def retrieve_and_generate(self, user_input: str) -> str:
         try:
-            print(f"ACTION_GROUP NO retrieve_and_generate: {action_group}")
-            
-            cached = await self.redis_cache.get_cache(action_group, self.llm_embeddings)
-            print(f"CACHE RETORNADO: {cached}")
-
-            if cached:
-                resultado = cached[0].text if isinstance(cached, list) else cached
-                print(f"RETORNANDO DO CACHE: {resultado}")
-                return resultado
-
-            response = await self.bedrock_client.bedrock_with_langchain_client(action_group)
-            print(f"RESPOSTA BEDROCK: {response}")
-            
-            await self.redis_cache.update_cache(action_group, self.llm_embeddings, response)
-            print("CACHE ATUALIZADO")
-            
+            response = await self.bedrock_client.bedrock_with_langchain_client(user_input)
+            print(f"RESPOSTA BEDROCK: {response}")  # <-- Linha 4: resposta da LLM Bedrock
             return response
         except Exception as e:
-            print(f"Erro no retrieve_and_generate: {e}")
+            print(f"Erro no retrieve_and_generate: {e}")  # <-- Linha 6: erro no processo
             return "Erro interno no servidor"
 
-    def to_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(
-            coroutine=self.retrieve_and_generate,
-            name="RetrieveAndGenerateTool",
-            description=(
-                "Use esta ferramenta para responder diretamente com base no texto original do usuário. "
-                "O parâmetro de entrada deve ser chamado 'action_group'."
-            ),
-        )
+
+    
